@@ -23,7 +23,13 @@ jobs:
     runs-on: ${{ matrix.image }}
     name: ${{ matrix.image }}
     steps:
-      - uses: actions/checkout@main
+      # BUG: on macos, some files are owned by root
+      # This may cause chezmoi to fail to apply
+      - name: Fix permission issue
+        run: |
+          sudo chown -R $USER $HOME
+          ls -la $HOME
+
       - name: Test dotfile on ${{ matrix.image }}
         env:
           HUGGINGFACE_BUILDING: "true"
