@@ -16,6 +16,7 @@ ENV HOME=/home/linuxbrew \
     PATH=/home/linuxbrew/.local/bin:$PATH
 
 ARG HUGGINGFACE_BUILDING=true
+ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR $HOME
 

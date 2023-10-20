@@ -33,6 +33,7 @@ jobs:
       - name: Test dotfile on ${{ matrix.image }}
         env:
           HUGGINGFACE_BUILDING: "true"
+          DEBIAN_FRONTEND: noninteractive
         run: |
           brew install chezmoi
           chezmoi init "${{ secrets.DOTFILES_REPO }}" --depth 1 --no-pager --no-tty --keep-going
