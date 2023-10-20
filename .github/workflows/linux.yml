@@ -1,0 +1,57 @@
+---
+name: Linux
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - Dockerfile
+      - .github/workflows/linux.yml
+  schedule:
+    - cron: 42 15 * * *
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {base_image: ubuntu, image_tag: latest}
+          - {base_image: ubuntu, image_tag: rolling}
+          - {base_image: ubuntu, image_tag: devel}
+          - {base_image: debian, image_tag: unstable-slim}
+          - {base_image: debian, image_tag: stable-slim}
+          - {base_image: debian, image_tag: oldstable-slim}
+          - {base_image: debian, image_tag: oldoldstable-slim}
+    name: Build ${{ matrix.base_image }}-${{ matrix.image_tag }}
+    steps:
+      - uses: actions/checkout@main
+
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@master
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@master
+      # - name: Login to DockerHub
+      #   uses: docker/login-action@master
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}}
+      #     password: ${{ secrets.DOCKER_PASSWD }}
+
+      - name: Build
+        uses: docker/build-push-action@master
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: false
+          provenance: false
+          build-args: |
+            base_image=${{ matrix.base_image }}
+            image_tag=${{ matrix.image_tag }}
+          secrets: |
+            "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"

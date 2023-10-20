@@ -1,0 +1,33 @@
+---
+name: macOS
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/macos.yml
+  schedule:
+    - cron: 42 0 * * *
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [macos-latest, macos-13, macos-12, macos-11]
+    runs-on: ${{ matrix.image }}
+    name: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@main
+      - name: Test dotfile on ${{ matrix.image }}
+        env:
+          HUGGINGFACE_BUILDING: "true"
+        run: |
+          brew install chezmoi
+          chezmoi init "${{ secrets.DOTFILES_REPO }}" --depth 1 --no-pager --no-tty --keep-going
+          chezmoi apply --init --force --no-pager --no-tty --keep-going
