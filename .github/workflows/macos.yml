@@ -38,3 +38,6 @@ jobs:
           brew install chezmoi
           chezmoi init "${{ secrets.DOTFILES_REPO }}" --depth 1 --no-pager --no-tty --keep-going
           chezmoi apply --init --force --no-pager --no-tty --keep-going
+      - name: Integrity check on ${{ matrix.image }}
+        run: |
+          $HOME/.local/bin/custom/chezmoi-integrity
