@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [macos-latest, macos-13, macos-12, macos-11]
+        image: [macos-13, macos-12, macos-11]
     runs-on: ${{ matrix.image }}
     name: ${{ matrix.image }}
     steps:
