@@ -7,7 +7,7 @@ on:
     paths:
       - .github/workflows/macos.yml
   schedule:
-    - cron: 42 0 * * *
+    - cron: 45 23 * * *
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

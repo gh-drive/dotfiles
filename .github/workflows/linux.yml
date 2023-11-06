@@ -8,7 +8,7 @@ on:
       - Dockerfile
       - .github/workflows/linux.yml
   schedule:
-    - cron: 42 15 * * *
+    - cron: 45 23 * * *
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
