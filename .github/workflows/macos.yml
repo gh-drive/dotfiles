@@ -14,8 +14,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  filter:
+    runs-on: ubuntu-latest
+    name: check if we need to trigger a test
+    outputs:
+      action: ${{ steps.trigger-test.outputs.action }}
+    steps:
+      - uses: actions/checkout@main
+      - name: set meta info
+        run: |
+          echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> $GITHUB_ENV
 
+      - name: check if we need to trigger a test
+        id: trigger-test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh api /repos/${{github.repository}}/branches/manifest-macos > /dev/null 2>&1; then
+          echo "branch manifest not found. trigger a test"
+          echo "action=trigger" >> "$GITHUB_OUTPUT"
+          else
+          last_sha=$(curl -sSLf https://raw.githubusercontent.com/${{github.repository}}/manifest-macos/manifest.json | jq -r '.remote_sha')
+          if [ "$last_sha" != "${{ env.remote_sha }}" ]; then
+          echo "remote_sha changed. trigger a test"
+          echo "action=trigger" >> "$GITHUB_OUTPUT"
+          else
+          echo "remote_sha not changed. skip"
+          echo "action=skip" >> "$GITHUB_OUTPUT"
+          fi
+          fi
+
+  build:
+    needs: filter
+    if: needs.filter.outputs.action == 'trigger'
     strategy:
       fail-fast: false
       matrix:
@@ -57,3 +88,37 @@ jobs:
       - name: Integrity check on ${{ matrix.image }}
         run: |
           $HOME/.local/bin/custom/chezmoi-integrity
+
+  manifest:
+    runs-on: ubuntu-latest
+    needs: build
+    name: push manifest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@main
+
+      - name: set meta info
+        run: |
+          echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+          echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> $GITHUB_ENV
+
+      - name: generate manifest
+        run: |-
+          mkdir public
+          cat <<EOF > public/manifest.json
+          {
+            "os": "macos",
+            "date": "${{ env.date }}",
+            "remote_sha": "${{ env.remote_sha }}"
+          }
+          EOF
+          cat public/manifest.json
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: manifest-macos
+          folder: ./public
+          single-commit: true
+          commit-message: ${{ github.event.head_commit.message }}
