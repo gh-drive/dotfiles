@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: Install chezmoi
         run: |
-          brew install chezmoi
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
 
       # Homebrew has dropped support for macos-11, pin to the last support commit
       - name: Recover homebrew support on macos-11
@@ -83,8 +83,8 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
           HOMEBREW_NO_INSTALL_FROM_API: 1
         run: |
-          chezmoi init "${{ secrets.DOTFILES_REPO }}" --depth 1 --no-pager --no-tty --keep-going
-          chezmoi apply --init --force --no-pager --no-tty --keep-going
+          $HOME/.local/bin/chezmoi init "${{ secrets.DOTFILES_REPO }}" --depth 1 --no-pager --no-tty
+          $HOME/.local/bin/chezmoi apply --init --force --no-pager --no-tty
       - name: Integrity check on ${{ matrix.image }}
         run: |
           $HOME/.local/bin/custom/chezmoi-integrity
