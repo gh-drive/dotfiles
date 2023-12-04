@@ -55,13 +55,27 @@ jobs:
           - {base_image: ubuntu, image_tag: latest}
           - {base_image: ubuntu, image_tag: rolling}
           - {base_image: ubuntu, image_tag: devel}
-          - {base_image: debian, image_tag: unstable-slim}
-          - {base_image: debian, image_tag: stable-slim}
-          - {base_image: debian, image_tag: oldstable-slim}
-          - {base_image: debian, image_tag: oldoldstable-slim}
+          - {base_image: ubuntu, image_tag: xenial}
+          - {base_image: ubuntu, image_tag: bionic}
+          - {base_image: ubuntu, image_tag: focal}
+          - {base_image: ubuntu, image_tag: jammy}
+          - {base_image: debian, image_tag: unstable}
+          - {base_image: debian, image_tag: stable}
+          - {base_image: debian, image_tag: oldstable}
+          - {base_image: debian, image_tag: oldoldstable}
+          - {base_image: debian, image_tag: buster}
+          - {base_image: debian, image_tag: bullseye}
+          - {base_image: debian, image_tag: bookworm}
+          - {base_image: debian, image_tag: trixie}
     name: ${{ matrix.base_image }}-${{ matrix.image_tag }}
     steps:
       - uses: actions/checkout@main
+
+      - name: Login to DockerHub
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWD }}
 
       - name: test dotfiles
         uses: docker/build-push-action@master
@@ -69,13 +83,15 @@ jobs:
           context: .
           file: Dockerfile
           platforms: linux/amd64
-          push: false
+          push: true
           provenance: false
           build-args: |
             base_image=${{ matrix.base_image }}
             image_tag=${{ matrix.image_tag }}
           secrets: |
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.image_tag }}
 
   manifest:
     runs-on: ubuntu-latest

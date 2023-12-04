@@ -3,8 +3,10 @@ ARG image_tag=latest
 FROM ${base_image}:${image_tag}
 
 RUN apt-get update -y && \
-    apt-get -y install --no-install-recommends sudo ca-certificates curl git binutils && \
+    apt-get -y install --no-install-recommends sudo ca-certificates curl git binutils locales && \
     rm -rf /var/lib/apt/lists/* && \
+    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
+    locale-gen && \
     groupadd linuxbrew && \
     useradd -s /bin/bash --gid linuxbrew -m linuxbrew && \
     echo "linuxbrew ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/linuxbrew && \
