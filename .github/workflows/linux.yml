@@ -108,6 +108,7 @@ jobs:
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.image_tag }}
+            ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.image_tag }}
 
   manifest:
     runs-on: ubuntu-latest
