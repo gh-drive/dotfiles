@@ -1,9 +1,9 @@
 ARG base_image=ubuntu
 ARG image_tag=latest
 FROM ${base_image}:${image_tag}
-
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
-    apt-get -y install --no-install-recommends sudo ca-certificates curl git binutils locales && \
+    apt-get -y install --no-install-recommends sudo ca-certificates curl git tig locales && \
     rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
     locale-gen && \
@@ -16,9 +16,6 @@ RUN apt-get update -y && \
 USER linuxbrew
 ENV HOME=/home/linuxbrew \
     PATH=/home/linuxbrew/.local/bin:$PATH
-
-ARG HUGGINGFACE_BUILDING=true
-ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR $HOME
 
