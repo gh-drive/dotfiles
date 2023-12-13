@@ -94,6 +94,7 @@ jobs:
           fi
 
       - name: test dotfiles
+        timeout-minutes: 40
         uses: docker/build-push-action@master
         with:
           context: .
