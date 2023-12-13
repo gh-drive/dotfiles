@@ -30,6 +30,7 @@ RUN curl -sSLfk get.chezmoi.io -o /tmp/install_chezmoi.sh && \
 RUN --mount=type=secret,id=DOTFILES_REPO,mode=0444,required=true \
     /home/linuxbrew/.local/bin/chezmoi init "$(cat /run/secrets/DOTFILES_REPO)" --depth 1 --no-pager --no-tty && \
     /home/linuxbrew/.local/bin/chezmoi apply --init --force --no-pager --no-tty && \
+    /home/linuxbrew/.local/bin/chezmoi apply --force --no-pager --no-tty && \
     /home/linuxbrew/.local/bin/custom/chezmoi-integrity && \
     rm -rf /home/linuxbrew/.cache/chezmoi && \
     rm -rf /home/linuxbrew/.config/chezmoi
