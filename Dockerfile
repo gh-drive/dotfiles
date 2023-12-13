@@ -15,7 +15,8 @@ RUN apt-get update -y && \
 
 USER linuxbrew
 ENV HOME=/home/linuxbrew \
-    PATH=/home/linuxbrew/.local/bin:$PATH
+    PATH=/home/linuxbrew/.local/bin:$PATH \
+    TERM=xterm-256color
 
 WORKDIR $HOME
 
@@ -32,3 +33,5 @@ RUN --mount=type=secret,id=DOTFILES_REPO,mode=0444,required=true \
     /home/linuxbrew/.local/bin/custom/chezmoi-integrity && \
     rm -rf /home/linuxbrew/.cache/chezmoi && \
     rm -rf /home/linuxbrew/.config/chezmoi
+
+CMD [ "zsh", "-l" ]
