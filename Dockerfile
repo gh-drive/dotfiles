@@ -32,7 +32,8 @@ RUN --mount=type=secret,id=DOTFILES_REPO,mode=0444,required=true \
     /home/linuxbrew/.local/bin/chezmoi apply --init --force --no-pager --no-tty && \
     /home/linuxbrew/.local/bin/chezmoi apply --force --no-pager --no-tty && \
     /home/linuxbrew/.local/bin/custom/chezmoi-integrity && \
-    rm -rf /home/linuxbrew/.cache/chezmoi && \
-    rm -rf /home/linuxbrew/.config/chezmoi
+    /bin/rm -rf /home/linuxbrew/.cache/chezmoi && \
+    /bin/rm -rf /home/linuxbrew/.config/chezmoi && \
+    /bin/rm -rf /tmp/*
 
 CMD [ "zsh", "-l" ]
