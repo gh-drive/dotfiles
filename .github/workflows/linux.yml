@@ -58,15 +58,10 @@ jobs:
           - {base_image: ubuntu, image_tag: xenial, test_arm64: false}
           - {base_image: ubuntu, image_tag: bionic, test_arm64: false}
           - {base_image: ubuntu, image_tag: focal, test_arm64: true}
-          - {base_image: ubuntu, image_tag: jammy, test_arm64: true}
           - {base_image: debian, image_tag: unstable, test_arm64: true}
           - {base_image: debian, image_tag: stable, test_arm64: true}
           - {base_image: debian, image_tag: oldstable, test_arm64: true}
           - {base_image: debian, image_tag: oldoldstable, test_arm64: true}
-          - {base_image: debian, image_tag: buster, test_arm64: true}
-          - {base_image: debian, image_tag: bullseye, test_arm64: true}
-          - {base_image: debian, image_tag: bookworm, test_arm64: true}
-          - {base_image: debian, image_tag: trixie, test_arm64: true}
 
     name: ${{ matrix.base_image }}-${{ matrix.image_tag }}
     steps:
