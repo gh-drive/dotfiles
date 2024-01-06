@@ -1,6 +1,6 @@
 ARG base_image=ubuntu
-ARG image_tag=latest
-FROM ${base_image}:${image_tag}
+ARG code_name=latest
+FROM ${base_image}:${code_name}
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get -y install --no-install-recommends build-essential sudo ca-certificates curl git tig locales && \
