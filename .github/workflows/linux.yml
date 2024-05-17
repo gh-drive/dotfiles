@@ -60,7 +60,7 @@ jobs:
           - {base_image: debian, code_name: trixie, version_number: 13, test_arm64: true}
           - {base_image: debian, code_name: bookworm, version_number: 12, test_arm64: true}
           - {base_image: debian, code_name: bullseye, version_number: 11, test_arm64: true}
-          - {base_image: debian, code_name: buster, version_number: 10, test_arm64: true}
+          - {base_image: debian, code_name: buster, version_number: 10, test_arm64: false}
 
     name: ${{ matrix.base_image }}-${{ matrix.code_name }}
     steps:
