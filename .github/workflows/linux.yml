@@ -78,6 +78,13 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWD }}
 
+      - name: Login to coding
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.CODING_USERNAME }}
+          password: ${{ secrets.CODING_PAT }}
+          registry: ${{ secrets.CODING_REGISTRY }}
+
       - name: Set test platforms
         id: platforms
         run: |
@@ -105,6 +112,9 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.code_name }}
+            ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
+            ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
+            ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.code_name }}
 
   manifest:
     runs-on: ubuntu-latest
