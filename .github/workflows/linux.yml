@@ -85,6 +85,13 @@ jobs:
           password: ${{ secrets.CODING_PAT }}
           registry: ${{ secrets.CODING_REGISTRY }}
 
+      - name: Login to ACR
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PAT }}
+          registry: ${{ secrets.ACR_REGISTRY }}
+
       - name: Set test platforms
         id: platforms
         run: |
@@ -115,6 +122,9 @@ jobs:
             ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
             ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
             ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.code_name }}
+            ${{ secrets.ACR_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
+            ${{ secrets.ACR_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
+            ${{ secrets.ACR_URI }}/devcontainer:${{ matrix.code_name }}
 
   manifest:
     runs-on: ubuntu-latest
