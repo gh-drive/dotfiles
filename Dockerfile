@@ -7,8 +7,13 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
     locale-gen && \
+    if grep -q "VERSION_CODENAME=noble" /etc/os-release; then \
+    usermod --move-home --home /home/linuxbrew --login linuxbrew ubuntu; \
+    groupmod --new-name linuxbrew ubuntu; \
+    else \
     groupadd linuxbrew && \
-    useradd -s /bin/bash --gid linuxbrew -m linuxbrew && \
+    useradd -s /bin/bash --gid linuxbrew -m linuxbrew; \
+    fi && \
     echo "linuxbrew ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/linuxbrew && \
     chmod 0440 /etc/sudoers.d/linuxbrew && \
     cat /etc/passwd
