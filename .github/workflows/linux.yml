@@ -78,20 +78,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWD }}
 
-      - name: Login to coding
-        uses: docker/login-action@master
-        with:
-          username: ${{ secrets.CODING_USERNAME }}
-          password: ${{ secrets.CODING_PAT }}
-          registry: ${{ secrets.CODING_REGISTRY }}
-
-      - name: Login to ACR
-        uses: docker/login-action@master
-        with:
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PAT }}
-          registry: ${{ secrets.ACR_REGISTRY }}
-
       - name: Set test platforms
         id: platforms
         run: |
@@ -119,12 +105,6 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.code_name }}
-            ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
-            ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
-            ${{ secrets.CODING_URI }}/devcontainer:${{ matrix.code_name }}
-            ${{ secrets.ACR_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
-            ${{ secrets.ACR_URI }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
-            ${{ secrets.ACR_URI }}/devcontainer:${{ matrix.code_name }}
 
   manifest:
     runs-on: ubuntu-latest
@@ -159,3 +139,18 @@ jobs:
           folder: ./public
           single-commit: true
           commit-message: ${{ github.event.head_commit.message }}
+
+  sync:
+    runs-on: ubuntu-latest
+    name: sync image
+    steps:
+      - name: Login to ACR
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PAT }}
+          registry: ${{ secrets.ACR_REGISTRY }}
+
+      - name: Sync to ACR
+        run: |-
+          skopeo sync --insecure-policy --retry-times 3 --src docker --dest docker ${{ secrets.DOCKER_USERNAME }}/devcontainer ${{ secrets.ACR_URI }}
