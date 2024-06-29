@@ -28,6 +28,8 @@ on:
         type: number
         default: 1000
 
+permissions: read-all
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -47,6 +49,13 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWD }}
 
+      - name: Login to GHCR
+        uses: docker/login-action@master
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Login to ACR
         uses: docker/login-action@master
         with:
@@ -64,12 +73,13 @@ jobs:
           push: true
           provenance: false
           build-args: |
-            base_image=${{ inputs.base_image }}
-            code_name=${{ inputs.code_name }}
-            user_id=${{ inputs.uid }}
-            group_id=${{ inputs.gid }}
+            BASE_IMAGE=${{ inputs.base_image }}
+            CODE_NAME=${{ inputs.code_name }}
+            USER_ID=${{ inputs.uid }}
+            GROUP_ID=${{ inputs.gid }}
           secrets: |
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:noble-cache
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ inputs.code_name }}-${{ inputs.uid }}-${{ inputs.gid }}
             ${{ secrets.ACR_URI }}/devcontainer:${{ inputs.code_name }}-${{ inputs.uid }}-${{ inputs.gid }}

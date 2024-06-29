@@ -1,16 +1,21 @@
-ARG base_image=ubuntu
-ARG code_name=noble
-FROM ${base_image}:${code_name}
-ARG user_id=1000
-ARG group_id=1000
+ARG BASE_IMAGE=ubuntu
+ARG CODE_NAME=noble
+FROM ${BASE_IMAGE}:${CODE_NAME}
+ARG USER_ID=1000
+ARG GROUP_ID=1000
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get -y install --no-install-recommends build-essential sudo ca-certificates curl git tig locales && \
     rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
     locale-gen && \
-    groupadd --gid $group_id linuxbrew && \
-    useradd -s /bin/bash --uid $user_id --gid $group_id -m linuxbrew && \
+    if grep -q "VERSION_CODENAME=noble" /etc/os-release; then \
+    usermod --move-home --home /home/linuxbrew --login linuxbrew ubuntu; \
+    groupmod --new-name linuxbrew ubuntu; \
+    else \
+    groupadd --gid $GROUP_ID linuxbrew && \
+    useradd -s /bin/bash --uid $USER_ID --gid $GROUP_ID -m linuxbrew; \
+    fi && \
     echo "linuxbrew ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/linuxbrew && \
     chmod 0440 /etc/sudoers.d/linuxbrew && \
     cat /etc/passwd

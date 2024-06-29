@@ -1,6 +1,6 @@
-ARG base_image=ubuntu
-ARG code_name=latest
-FROM ${base_image}:${code_name}
+ARG BASE_IMAGE=ubuntu
+ARG CODE_NAME=latest
+FROM ${BASE_IMAGE}:${CODE_NAME}
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get -y install --no-install-recommends build-essential sudo ca-certificates curl git tig locales && \
@@ -32,8 +32,10 @@ RUN curl -sSLfk get.chezmoi.io -o /tmp/install_chezmoi.sh && \
     /tmp/install_chezmoi.sh -b /home/linuxbrew/.local/bin -t latest -d && \
     rm -f /tmp/install_chezmoi.sh
 
+ARG REF=master
 RUN --mount=type=secret,id=DOTFILES_REPO,mode=0444,required=true \
     /home/linuxbrew/.local/bin/chezmoi init "$(cat /run/secrets/DOTFILES_REPO)" --depth 1 --no-pager --no-tty && \
+    git -C /home/linuxbrew/.local/share/chezmoi checkout $REF && \
     /home/linuxbrew/.local/bin/chezmoi apply --init --force --no-pager --no-tty && \
     /home/linuxbrew/.local/bin/chezmoi apply --force --no-pager --no-tty && \
     /home/linuxbrew/.local/bin/custom/chezmoi-integrity && \

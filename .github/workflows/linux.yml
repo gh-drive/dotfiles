@@ -13,12 +13,13 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+permissions: write-all
 
 jobs:
   filter:
     runs-on: ubuntu-latest
     outputs:
-      action: ${{ steps.trigger-test.outputs.action }}
+      remote_ref: ${{ steps.trigger-test.outputs.remote_ref }}
     steps:
       - uses: actions/checkout@main
       - name: set meta info
@@ -32,22 +33,22 @@ jobs:
         run: |
           if ! gh api /repos/${{github.repository}}/branches/manifest-linux > /dev/null 2>&1; then
           echo "branch manifest not found. trigger a test"
-          echo "action=trigger" >> "$GITHUB_OUTPUT"
+          echo "remote_ref=master" >> "$GITHUB_OUTPUT"
           else
           last_sha=$(curl -sSLf https://raw.githubusercontent.com/${{github.repository}}/manifest-linux/manifest.json | jq -r '.remote_sha')
           if [ "$last_sha" != "${{ env.remote_sha }}" ]; then
           echo "remote_sha changed. trigger a test"
-          echo "action=trigger" >> "$GITHUB_OUTPUT"
+          echo "remote_ref=${{ env.remote_sha }}" >> "$GITHUB_OUTPUT"
           else
           echo "remote_sha not changed. skip"
-          echo "action=skip" >> "$GITHUB_OUTPUT"
+          echo "remote_ref=skip" >> "$GITHUB_OUTPUT"
           fi
           fi
 
   build:
     runs-on: ubuntu-latest
     needs: filter
-    if: needs.filter.outputs.action == 'trigger'
+    if: needs.filter.outputs.remote_ref != 'skip'
     strategy:
       fail-fast: false
       matrix:
@@ -78,6 +79,13 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWD }}
 
+      - name: Login to GHCR
+        uses: docker/login-action@master
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set test platforms
         id: platforms
         run: |
@@ -97,10 +105,13 @@ jobs:
           push: true
           provenance: false
           build-args: |
-            base_image=${{ matrix.base_image }}
-            code_name=${{ matrix.code_name }}
+            BASE_IMAGE=${{ matrix.base_image }}
+            CODE_NAME=${{ matrix.code_name }}
+            REF=${{ needs.filter.outputs.remote_ref }}
           secrets: |
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-cache,mode=max
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
