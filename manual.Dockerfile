@@ -10,8 +10,8 @@ RUN apt-get update -y && \
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
     locale-gen && \
     if grep -q "VERSION_CODENAME=noble" /etc/os-release; then \
-    usermod --move-home --home /home/linuxbrew --login linuxbrew ubuntu; \
-    groupmod --new-name linuxbrew ubuntu; \
+    usermod --move-home --home /home/linuxbrew --login linuxbrew --uid $USER_ID ubuntu; \
+    groupmod --new-name linuxbrew --gid $GROUP_ID ubuntu; \
     else \
     groupadd --gid $GROUP_ID linuxbrew && \
     useradd -s /bin/bash --uid $USER_ID --gid $GROUP_ID -m linuxbrew; \

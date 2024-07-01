@@ -56,13 +56,6 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Login to ACR
-        uses: docker/login-action@master
-        with:
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PAT }}
-          registry: ${{ secrets.ACR_REGISTRY }}
-
       - name: build
         timeout-minutes: 120
         uses: docker/build-push-action@master
@@ -82,4 +75,19 @@ jobs:
           cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:noble-cache
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ inputs.code_name }}-${{ inputs.uid }}-${{ inputs.gid }}
-            ${{ secrets.ACR_URI }}/devcontainer:${{ inputs.code_name }}-${{ inputs.uid }}-${{ inputs.gid }}
+
+  sync:
+    runs-on: ubuntu-latest
+    name: sync image
+    needs: build
+    steps:
+      - name: Login to ACR
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PAT }}
+          registry: ${{ secrets.ACR_REGISTRY }}
+
+      - name: Sync to ACR
+        run: |-
+          skopeo sync --insecure-policy --retry-times 3 --src docker --dest docker ${{ secrets.DOCKER_USERNAME }}/devcontainer ${{ secrets.ACR_URI }}
