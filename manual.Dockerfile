@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=ubuntu
 ARG CODE_NAME=noble
-FROM ${BASE_IMAGE}:${CODE_NAME}
+FROM registry.cn-shanghai.aliyuncs.com/cn-mirrors/${BASE_IMAGE}:${CODE_NAME}
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 ARG DEBIAN_FRONTEND=noninteractive

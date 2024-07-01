@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=ubuntu
 ARG CODE_NAME=latest
-FROM ${BASE_IMAGE}:${CODE_NAME}
+FROM registry.cn-shanghai.aliyuncs.com/cn-mirrors/${BASE_IMAGE}:${CODE_NAME}
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get -y install --no-install-recommends build-essential sudo ca-certificates curl git tig locales && \
