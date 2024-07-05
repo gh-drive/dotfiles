@@ -153,6 +153,7 @@ jobs:
 
   sync:
     runs-on: ubuntu-latest
+    needs: build
     name: sync image
     steps:
       - name: Login to ACR
