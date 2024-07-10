@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@main
       - name: set meta info
         run: |
-          echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> $GITHUB_ENV
+          echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> "$GITHUB_ENV"
 
       - name: check if we need to trigger a test
         id: trigger-test
@@ -53,17 +53,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {base_image: ubuntu, code_name: noble, version_number: 24.04, test_arm64: false}
-          - {base_image: ubuntu, code_name: jammy, version_number: 22.04, test_arm64: false}
-          - {base_image: ubuntu, code_name: focal, version_number: 20.04, test_arm64: false}
-          - {base_image: ubuntu, code_name: bionic, version_number: 18.04, test_arm64: false}
-          - {base_image: ubuntu, code_name: xenial, version_number: 16.04, test_arm64: false}
-          - {base_image: debian, code_name: trixie, version_number: 13, test_arm64: false}
-          - {base_image: debian, code_name: bookworm, version_number: 12, test_arm64: false}
-          - {base_image: debian, code_name: bullseye, version_number: 11, test_arm64: false}
-          - {base_image: debian, code_name: buster, version_number: 10, test_arm64: false}
+          - {code_name: noble, test_arm64: false}
+          - {code_name: jammy, test_arm64: false}
+          - {code_name: focal, test_arm64: false}
+          - {code_name: bionic, test_arm64: false}
+          - {code_name: xenial, test_arm64: false}
+          - {code_name: trixie, test_arm64: false}
+          - {code_name: bookworm, test_arm64: false}
+          - {code_name: bullseye, test_arm64: false}
+          - {code_name: buster, test_arm64: false}
 
-    name: ${{ matrix.base_image }}-${{ matrix.code_name }}
+    name: ${{ matrix.code_name }}
     steps:
       - uses: actions/checkout@main
 
@@ -73,18 +73,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@master
 
-      - name: Login to DockerHub
-        uses: docker/login-action@master
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWD }}
-
       - name: Login to GHCR
         uses: docker/login-action@master
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to ACR
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PAT }}
+          registry: ${{ secrets.ACR_REGISTRY }}
 
       - name: Set test platforms
         id: platforms
@@ -105,17 +106,14 @@ jobs:
           push: true
           provenance: false
           build-args: |
-            BASE_IMAGE=${{ matrix.base_image }}
+            IMAGE_NAME=ghcr.io/${{ github.repository }}
             CODE_NAME=${{ matrix.code_name }}
             REF=${{ needs.filter.outputs.remote_ref }}
           secrets: |
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-cache,mode=max
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.code_name }}
-            ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.base_image }}-${{ matrix.version_number }}
-            ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ matrix.code_name }}
+            ghcr.io/${{ github.repository }}:${{ matrix.code_name }}
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.ACR_IMAGE_NAME }}:${{ matrix.code_name }}
 
   manifest:
     runs-on: ubuntu-latest
@@ -128,17 +126,17 @@ jobs:
 
       - name: set meta info
         run: |
-          echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
-          echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> $GITHUB_ENV
+          echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> "$GITHUB_ENV"
+          echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> "$GITHUB_ENV"
 
       - name: generate manifest
         run: |-
           mkdir public
           cat <<EOF > public/manifest.json
           {
-            "os": "linux",
-            "date": "${{ env.date }}",
-            "remote_sha": "${{ env.remote_sha }}"
+          "os": "linux",
+          "date": "${{ env.date }}",
+          "remote_sha": "${{ env.remote_sha }}"
           }
           EOF
           cat public/manifest.json
@@ -150,19 +148,3 @@ jobs:
           folder: ./public
           single-commit: true
           commit-message: ${{ github.event.head_commit.message }}
-
-  sync:
-    runs-on: ubuntu-latest
-    needs: build
-    name: sync image
-    steps:
-      - name: Login to ACR
-        uses: docker/login-action@master
-        with:
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PAT }}
-          registry: ${{ secrets.ACR_REGISTRY }}
-
-      - name: Sync to ACR
-        run: |-
-          skopeo sync --insecure-policy --retry-times 3 --src docker --dest docker ${{ secrets.DOCKER_USERNAME }}/devcontainer ${{ secrets.ACR_URI }}

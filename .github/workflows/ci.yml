@@ -43,8 +43,6 @@ jobs:
           push: false
           provenance: false
           build-args: |
-            BASE_IMAGE=ubuntu
-            CODE_NAME=noble
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:noble-cache
+            IMAGE_NAME=ghcr.io/${{ github.repository }}
           secrets: |
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
