@@ -1,0 +1,76 @@
+---
+name: Build Base Image
+run-name: base-image with chezmoi ${{ inputs.chezmoi_version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      chezmoi_version:
+        description: chezmoi version
+        required: true
+        default: v2.50.0
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions: write-all
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {base_image: ubuntu, code_name: noble}
+          - {base_image: ubuntu, code_name: jammy}
+          - {base_image: ubuntu, code_name: focal}
+          - {base_image: ubuntu, code_name: bionic}
+          - {base_image: ubuntu, code_name: xenial}
+          - {base_image: debian, code_name: trixie}
+          - {base_image: debian, code_name: bookworm}
+          - {base_image: debian, code_name: bullseye}
+          - {base_image: debian, code_name: buster}
+
+    name: ${{ matrix.base_image }}-${{ matrix.code_name }}
+    steps:
+      - uses: actions/checkout@main
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@master
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@master
+
+      - name: Login to GHCR
+        uses: docker/login-action@master
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to ACR
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PAT }}
+          registry: ${{ secrets.ACR_REGISTRY }}
+
+      - name: Build
+        uses: docker/build-push-action@master
+        with:
+          context: .
+          file: base.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          build-args: |
+            IMAGE_URI=${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}
+            BASE_IMAGE=${{ matrix.base_image }}
+            CODE_NAME=${{ matrix.code_name }}
+            CZ_VERSION=${{ inputs.chezmoi_version }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-base-cache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-base-cache,mode=max
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-base
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.ACR_IMAGE_NAME }}:${{ matrix.code_name }}-base
