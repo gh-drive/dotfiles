@@ -5,13 +5,6 @@ run-name: build-${{ inputs.code_name }}-${{ inputs.uid }}:${{ inputs.gid }}
 on:
   workflow_dispatch:
     inputs:
-      base_image:
-        required: true
-        description: os base image
-        type: choice
-        options:
-          - ubuntu
-          - debian
       code_name:
         required: true
         description: os code name
@@ -43,12 +36,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@master
 
-      - name: Login to DockerHub
-        uses: docker/login-action@master
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWD }}
-
       - name: Login to GHCR
         uses: docker/login-action@master
         with:
@@ -57,7 +44,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: build
-        timeout-minutes: 120
         uses: docker/build-push-action@master
         with:
           context: .
@@ -66,28 +52,11 @@ jobs:
           push: true
           provenance: false
           build-args: |
-            BASE_IMAGE=${{ inputs.base_image }}
+            IMAGE_NAME=ghcr.io/${{ github.repository }}
             CODE_NAME=${{ inputs.code_name }}
             USER_ID=${{ inputs.uid }}
             GROUP_ID=${{ inputs.gid }}
           secrets: |
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:noble-cache
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/devcontainer:${{ inputs.code_name }}-${{ inputs.uid }}-${{ inputs.gid }}
-
-  sync:
-    runs-on: ubuntu-latest
-    name: sync image
-    needs: build
-    steps:
-      - name: Login to ACR
-        uses: docker/login-action@master
-        with:
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PAT }}
-          registry: ${{ secrets.ACR_REGISTRY }}
-
-      - name: Sync to ACR
-        run: |-
-          skopeo sync --insecure-policy --retry-times 3 --src docker --dest docker ${{ secrets.DOCKER_USERNAME }}/devcontainer ${{ secrets.ACR_URI }}
+            ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.ACR_IMAGE_NAME }}:${{ inputs.code_name }}-${{ inputs.uid }}-${{ inputs.gid }}
