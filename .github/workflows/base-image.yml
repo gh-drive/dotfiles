@@ -69,8 +69,6 @@ jobs:
             BASE_IMAGE=${{ matrix.base_image }}
             CODE_NAME=${{ matrix.code_name }}
             CZ_VERSION=${{ inputs.chezmoi_version }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-base-cache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-base-cache,mode=max
           tags: |
             ghcr.io/${{ github.repository }}:${{ matrix.code_name }}-base
             ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.ACR_IMAGE_NAME }}:${{ matrix.code_name }}-base

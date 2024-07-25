@@ -15,15 +15,16 @@ jobs:
   delete:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete untagged
-        uses: Chizkiyahu/delete-untagged-ghcr-action@main
-        with:
-          token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          repository_owner: ${{ github.repository_owner }}
-          package_name: dotfiles
-          untagged_only: true
-          owner_type: user
+      # https://github.com/snok/container-retention-policy/issues/63
+      # - name: Delete untagged
+      #   uses: Chizkiyahu/delete-untagged-ghcr-action@main
+      #   with:
+      #     token: ${{ github.token }}
+      #     repository: ${{ github.repository }}
+      #     repository_owner: ${{ github.repository_owner }}
+      #     package_name: dotfiles
+      #     untagged_only: true
+      #     owner_type: user
 
       - name: Delete old workflow runs
         uses: Mattraks/delete-workflow-runs@v2
