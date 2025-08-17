@@ -58,6 +58,7 @@ jobs:
           - {code_name: focal, test_arm64: false}
           - {code_name: bionic, test_arm64: false}
           - {code_name: xenial, test_arm64: false}
+          - {code_name: forky, test_arm64: false}
           - {code_name: trixie, test_arm64: false}
           - {code_name: bookworm, test_arm64: false}
           - {code_name: bullseye, test_arm64: false}

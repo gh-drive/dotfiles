@@ -8,7 +8,7 @@ on:
       chezmoi_version:
         description: chezmoi version
         required: true
-        default: v2.50.0
+        default: v2.55.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,6 +27,7 @@ jobs:
           - {base_image: ubuntu, code_name: focal}
           - {base_image: ubuntu, code_name: bionic}
           - {base_image: ubuntu, code_name: xenial}
+          - {base_image: debian, code_name: forky}
           - {base_image: debian, code_name: trixie}
           - {base_image: debian, code_name: bookworm}
           - {base_image: debian, code_name: bullseye}
@@ -65,7 +66,6 @@ jobs:
           push: true
           provenance: false
           build-args: |
-            IMAGE_URI=${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}
             BASE_IMAGE=${{ matrix.base_image }}
             CODE_NAME=${{ matrix.code_name }}
             CZ_VERSION=${{ inputs.chezmoi_version }}

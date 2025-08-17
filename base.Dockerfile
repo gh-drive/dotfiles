@@ -1,7 +1,6 @@
-ARG IMAGE_URI
 ARG BASE_IMAGE=ubuntu
 ARG CODE_NAME=noble
-FROM ${IMAGE_URI}/${BASE_IMAGE}:${CODE_NAME}
+FROM ${BASE_IMAGE}:${CODE_NAME}
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get -y install --no-install-recommends build-essential sudo ca-certificates curl git locales && \
