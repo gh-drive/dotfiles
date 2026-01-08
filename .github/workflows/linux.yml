@@ -94,6 +94,8 @@ jobs:
             REF=${{ env.remote_ref }}
           secrets: |
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
+            "gh_token=${{ secrets.GITHUB_TOKEN }}"
+            "repository=${{ github.repository }}"
           tags: |
             ghcr.io/${{ github.repository }}:${{ matrix.code_name }}
             ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.ACR_IMAGE_NAME }}:${{ matrix.code_name }}

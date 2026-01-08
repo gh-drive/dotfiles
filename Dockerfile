@@ -14,4 +14,9 @@ RUN --mount=type=secret,id=DOTFILES_REPO,mode=0444,required=true \
     /bin/rm -rf /tmp/* && \
     /home/linuxbrew/.local/bin/custom/clean-dir /home/linuxbrew
 
+RUN --mount=type=secret,id=gh_token,mode=0444,required=true \
+    --mount=type=secret,id=repository,mode=0444,required=true \
+    CZ_BACKUP_REPO="$(cat /run/secrets/repository)" GH_TOKEN="$(cat /run/secrets/gh_token)" \
+    /home/linuxbrew/.local/bin/custom/chezmoi-backuphome
+
 CMD [ "zsh", "-l" ]
