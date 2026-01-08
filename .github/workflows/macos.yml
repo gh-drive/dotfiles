@@ -35,7 +35,9 @@ jobs:
           if ! wget --spider "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.image }}.json" > /dev/null 2>&1; then
           echo "${{ matrix.image }}.json not found: build"
           else
-          last_sha=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/json" "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.image }}.json" | jq -r '.remote_sha')
+          last_sha=$(curl -sSLf -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/json" "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.image }}.json" | jq -r '.remote_sha')
+          echo "last_sha: $last_sha"
+          echo "remote_sha: ${{ env.remote_sha }}"
           if [ "$last_sha" != "${{ env.remote_sha }}" ]; then
           echo "remote_sha changed: build"
           else
