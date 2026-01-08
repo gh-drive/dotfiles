@@ -12,113 +12,92 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+permissions:
+  contents: write
 
 jobs:
-  filter:
-    runs-on: ubuntu-latest
-    name: check if we need to trigger a test
-    outputs:
-      action: ${{ steps.trigger-test.outputs.action }}
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [macos-14, macos-15, macos-15-intel, macos-26]
+    runs-on: ${{ matrix.image }}
+    name: ${{ matrix.image }}
     steps:
       - uses: actions/checkout@main
       - name: set meta info
         run: |
           echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> $GITHUB_ENV
+          echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
 
       - name: check if we need to trigger a test
-        id: trigger-test
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! gh api /repos/${{github.repository}}/branches/manifest-macos > /dev/null 2>&1; then
-          echo "branch manifest not found. trigger a test"
-          echo "action=trigger" >> "$GITHUB_OUTPUT"
+          if ! wget --spider "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.image }}.json" > /dev/null 2>&1; then
+          echo "${{ matrix.image }}.json not found: build"
           else
-          last_sha=$(curl -sSLf https://raw.githubusercontent.com/${{github.repository}}/manifest-macos/manifest.json | jq -r '.remote_sha')
+          last_sha=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/json" "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.image }}.json" | jq -r '.remote_sha')
           if [ "$last_sha" != "${{ env.remote_sha }}" ]; then
-          echo "remote_sha changed. trigger a test"
-          echo "action=trigger" >> "$GITHUB_OUTPUT"
+          echo "remote_sha changed: build"
           else
           echo "remote_sha not changed. skip"
-          echo "action=skip" >> "$GITHUB_OUTPUT"
+          echo "remote_ref=skip" >> "$GITHUB_ENV"
           fi
           fi
 
-  build:
-    needs: filter
-    if: needs.filter.outputs.action == 'trigger'
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [macos-14, macos-15-intel, macos-15]
-    runs-on: ${{ matrix.image }}
-    name: ${{ matrix.image }}
-    steps:
       - name: Install chezmoi
+        if: env.remote_ref != 'skip'
         run: |
           sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
 
-      # Homebrew has dropped support for macos-11, pin to the last support commit
-      - name: Recover homebrew support on macos-11
-        if: matrix.image == 'macos-11'
-        run: |
-          rm -rf "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
-          mkdir -p "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
-          cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
-          git init
-          git remote add origin https://github.com/Homebrew/homebrew-core.git
-          git fetch --depth 1 origin db654ea95a8289f0c0f22a68ccf87e28be7f4261
-          git checkout FETCH_HEAD
+      # # Homebrew has dropped support for macos-11, pin to the last support commit
+      # - name: Recover homebrew support on macos-11
+      #   if: matrix.image == 'macos-11' && env.remote_ref != 'skip'
+      #   run: |
+      #     rm -rf "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
+      #     mkdir -p "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
+      #     cd "$(brew --repository)/Library/Taps/homebrew/homebrew-core"
+      #     git init
+      #     git remote add origin https://github.com/Homebrew/homebrew-core.git
+      #     git fetch --depth 1 origin db654ea95a8289f0c0f22a68ccf87e28be7f4261
+      #     git checkout FETCH_HEAD
 
       # BUG: on macos, some files are owned by root
       # This may cause chezmoi to fail to apply
       - name: Fix permission issue
+        if: env.remote_ref != 'skip'
         run: |
           sudo chown -R $USER $HOME
           ls -la $HOME
 
-      - name: Test dotfile on ${{ matrix.image }}
+      - name: Test on ${{ matrix.image }}
+        if: env.remote_ref != 'skip'
+        id: build
         env:
           HUGGINGFACE_BUILDING: "true"
           DEBIAN_FRONTEND: noninteractive
           HOMEBREW_NO_INSTALL_FROM_API: 1
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $HOME/.local/bin/chezmoi init "${{ secrets.DOTFILES_REPO }}" --depth 1 --no-pager --no-tty
           $HOME/.local/bin/chezmoi apply --init --force --no-pager --no-tty
       - name: Integrity check on ${{ matrix.image }}
+        if: env.remote_ref != 'skip' && steps.build.outcome == 'success'
+        id: integrity
         run: |
           $HOME/.local/bin/custom/chezmoi-integrity
 
-  manifest:
-    runs-on: ubuntu-latest
-    needs: build
-    name: push manifest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@main
-
-      - name: set meta info
-        run: |
-          echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
-          echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> $GITHUB_ENV
-
-      - name: generate manifest
+      - name: generate version.json
+        if: env.remote_ref != 'skip' && steps.build.outcome == 'success' && steps.integrity.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |-
-          mkdir public
-          cat <<EOF > public/manifest.json
+          cat <<EOF > ./${{ matrix.image }}.json
           {
-            "os": "macos",
+            "os": "${{ matrix.image }}",
             "date": "${{ env.date }}",
             "remote_sha": "${{ env.remote_sha }}"
           }
           EOF
-          cat public/manifest.json
-
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: manifest-macos
-          folder: ./public
-          single-commit: true
-          commit-message: ${{ github.event.head_commit.message }}
+          cat ./${{ matrix.image }}.json
+          gh release create "version" --title "Version" --repo "${{github.repository}}" || true
+          gh release upload "version" ./${{ matrix.image }}.json --clobber --repo "${{github.repository}}"

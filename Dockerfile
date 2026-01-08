@@ -11,6 +11,7 @@ RUN --mount=type=secret,id=DOTFILES_REPO,mode=0444,required=true \
     /home/linuxbrew/.local/bin/custom/chezmoi-integrity && \
     /bin/rm -rf /home/linuxbrew/.cache/chezmoi && \
     /bin/rm -rf /home/linuxbrew/.config/chezmoi && \
-    /bin/rm -rf /tmp/*
+    /bin/rm -rf /tmp/* && \
+    /home/linuxbrew/.local/bin/custom/clean-dir /home/linuxbrew
 
 CMD [ "zsh", "-l" ]

@@ -16,65 +16,44 @@ concurrency:
 permissions: write-all
 
 jobs:
-  filter:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      remote_ref: ${{ steps.trigger-test.outputs.remote_ref }}
+    strategy:
+      fail-fast: false
+      matrix:
+        code_name: [noble, jammy, focal, bionic, xenial, forky, trixie, bookworm, bullseye, buster]
+
     steps:
       - uses: actions/checkout@main
       - name: set meta info
         run: |
           echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> "$GITHUB_ENV"
+          echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> "$GITHUB_ENV"
 
       - name: check if we need to trigger a test
-        id: trigger-test
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! gh api /repos/${{github.repository}}/branches/manifest-linux > /dev/null 2>&1; then
-          echo "branch manifest not found. trigger a test"
-          echo "remote_ref=master" >> "$GITHUB_OUTPUT"
+          if ! wget --spider "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.code_name }}.json" > /dev/null 2>&1; then
+          echo "branch ${{ matrix.code_name }} not found, build"
           else
-          last_sha=$(curl -sSLf https://raw.githubusercontent.com/${{github.repository}}/manifest-linux/manifest.json | jq -r '.remote_sha')
+          last_sha=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/json" "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.code_name }}.json" | jq -r '.remote_sha')
           if [ "$last_sha" != "${{ env.remote_sha }}" ]; then
-          echo "remote_sha changed. trigger a test"
-          echo "remote_ref=${{ env.remote_sha }}" >> "$GITHUB_OUTPUT"
+          echo "remote_sha changed: build"
           else
-          echo "remote_sha not changed. skip"
-          echo "remote_ref=skip" >> "$GITHUB_OUTPUT"
+          echo "remote_sha not changed: skip"
+          echo "remote_ref=skip" >> "$GITHUB_ENV"
           fi
           fi
-
-  build:
-    runs-on: ubuntu-latest
-    needs: filter
-    if: needs.filter.outputs.remote_ref != 'skip'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {code_name: noble, test_arm64: false}
-          - {code_name: jammy, test_arm64: false}
-          - {code_name: focal, test_arm64: false}
-          - {code_name: bionic, test_arm64: false}
-          - {code_name: xenial, test_arm64: false}
-          - {code_name: forky, test_arm64: false}
-          - {code_name: trixie, test_arm64: false}
-          - {code_name: bookworm, test_arm64: false}
-          - {code_name: bullseye, test_arm64: false}
-          - {code_name: buster, test_arm64: false}
-
-    name: ${{ matrix.code_name }}
-    steps:
-      - uses: actions/checkout@main
 
       - name: Set up QEMU
+        if: env.remote_ref != 'skip'
         uses: docker/setup-qemu-action@master
 
       - name: Set up Docker Buildx
+        if: env.remote_ref != 'skip'
         uses: docker/setup-buildx-action@master
 
       - name: Login to GHCR
+        if: env.remote_ref != 'skip'
         uses: docker/login-action@master
         with:
           registry: ghcr.io
@@ -82,22 +61,25 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to ACR
+        if: env.remote_ref != 'skip'
         uses: docker/login-action@master
         with:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PAT }}
           registry: ${{ secrets.ACR_REGISTRY }}
 
-      - name: Set test platforms
-        id: platforms
-        run: |
-          if [ "${{ matrix.test_arm64 }}" = "true" ]; then
-          echo "test_platforms=linux/amd64,linux/arm64" >> "$GITHUB_ENV"
-          else
-          echo "test_platforms=linux/amd64" >> "$GITHUB_ENV"
-          fi
+      # - name: Set test platforms
+      #   id: platforms
+      #   run: |
+      #     if [ "${{ matrix.test_arm64 }}" = "true" ]; then
+      #     echo "test_platforms=linux/amd64,linux/arm64" >> "$GITHUB_ENV"
+      #     else
+      #     echo "test_platforms=linux/amd64" >> "$GITHUB_ENV"
+      #     fi
 
       - name: test dotfiles
+        id: build
+        if: env.remote_ref != 'skip'
         timeout-minutes: 40
         uses: docker/build-push-action@master
         with:
@@ -109,43 +91,26 @@ jobs:
           build-args: |
             IMAGE_NAME=ghcr.io/${{ github.repository }}
             CODE_NAME=${{ matrix.code_name }}
-            REF=${{ needs.filter.outputs.remote_ref }}
+            REF=${{ env.remote_ref }}
           secrets: |
             "DOTFILES_REPO=${{ secrets.DOTFILES_REPO }}"
           tags: |
             ghcr.io/${{ github.repository }}:${{ matrix.code_name }}
             ${{ secrets.ACR_REGISTRY }}/${{ secrets.ACR_NAMESPACE }}/${{ secrets.ACR_IMAGE_NAME }}:${{ matrix.code_name }}
 
-  manifest:
-    runs-on: ubuntu-latest
-    needs: build
-    name: push manifest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@main
-
-      - name: set meta info
-        run: |
-          echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> "$GITHUB_ENV"
-          echo "remote_sha=$(git ls-remote ${{ secrets.DOTFILES_REPO }} HEAD | awk '{ print $1}')" >> "$GITHUB_ENV"
-
-      - name: generate manifest
+      - name: generate version.json
+        if: env.remote_ref != 'skip' && steps.build.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |-
-          mkdir public
-          cat <<EOF > public/manifest.json
+          cat <<EOF > ./${{ matrix.code_name }}.json
           {
-          "os": "linux",
-          "date": "${{ env.date }}",
-          "remote_sha": "${{ env.remote_sha }}"
+            "os": "linux",
+            "code_name": "${{ matrix.code_name }}",
+            "date": "${{ env.date }}",
+            "remote_sha": "${{ env.remote_sha }}"
           }
           EOF
-          cat public/manifest.json
-
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: manifest-linux
-          folder: ./public
-          single-commit: true
-          commit-message: ${{ github.event.head_commit.message }}
+          cat ./${{ matrix.code_name }}.json
+          gh release create "version" --title "Version" --repo "${{github.repository}}" || true
+          gh release upload "version" ./${{ matrix.code_name }}.json --clobber --repo "${{github.repository}}"
