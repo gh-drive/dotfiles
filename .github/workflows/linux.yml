@@ -32,16 +32,19 @@ jobs:
 
       - name: check if we need to trigger a test
         run: |
-          if ! wget --spider "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.code_name }}.json" > /dev/null 2>&1; then
+          if [[ -z "${{ env.remote_sha }}" ]]; then
+          echo "remote_sha is empty, skip"
+          echo "remote_ref=skip" >> "$GITHUB_ENV"
+          elif ! wget --spider "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.code_name }}.json" > /dev/null 2>&1; then
           echo "branch ${{ matrix.code_name }} not found, build"
           else
           last_sha=$(curl -sSLf -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/json" "https://github.com/${{github.repository}}/releases/download/version/${{ matrix.code_name }}.json" | jq -r '.remote_sha')
           echo "last_sha: $last_sha"
           echo "remote_sha: ${{ env.remote_sha }}"
-          if [ "$last_sha" != "${{ env.remote_sha }}" ]; then
+          if [[ "$last_sha" != "${{ env.remote_sha }}" ]]; then
           echo "remote_sha changed: build"
           else
-          echo "remote_sha not changed: skip"
+          echo "remote_sha is not changed: skip"
           echo "remote_ref=skip" >> "$GITHUB_ENV"
           fi
           fi
