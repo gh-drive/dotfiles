@@ -22,6 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - {base_image: ubuntu, code_name: resolute}
           - {base_image: ubuntu, code_name: noble}
           - {base_image: ubuntu, code_name: jammy}
           - {base_image: ubuntu, code_name: focal}

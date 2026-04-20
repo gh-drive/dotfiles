@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        code_name: [noble, jammy, focal, bionic, xenial, forky, trixie, bookworm, bullseye, buster]
+        code_name: [resolute, noble, jammy, focal, bionic, xenial, forky, trixie, bookworm, bullseye, buster]
 
     steps:
       - uses: actions/checkout@main
