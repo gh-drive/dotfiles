@@ -32,7 +32,6 @@ jobs:
           - {base_image: debian, code_name: trixie}
           - {base_image: debian, code_name: bookworm}
           - {base_image: debian, code_name: bullseye}
-          - {base_image: debian, code_name: buster}
 
     name: ${{ matrix.base_image }}-${{ matrix.code_name }}
     steps:

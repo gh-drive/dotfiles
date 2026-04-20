@@ -7,7 +7,7 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
     locale-gen && \
-    if grep -q "VERSION_CODENAME=noble" /etc/os-release; then \
+    if grep -qE "VERSION_CODENAME=(noble|resolute)" /etc/os-release; then \
     usermod --move-home --home /home/linuxbrew --login linuxbrew ubuntu; \
     groupmod --new-name linuxbrew ubuntu; \
     else \
@@ -26,12 +26,7 @@ ENV HOME=/home/linuxbrew \
 WORKDIR /home/linuxbrew
 
 # install chezmoi
-ARG CZ_VERSION=v2.50.0
-ARG TARGETARCH
-RUN mkdir -p /tmp/chezmoi && \
-    mkdir -p /home/linuxbrew/.local/bin && \
-    curl -sSLf -o /tmp/chezmoi/chezmoi.tar.gz "https://github.com/twpayne/chezmoi/releases/download/${CZ_VERSION}/chezmoi_${CZ_VERSION#v}_linux_${TARGETARCH}.tar.gz" && \
-    tar -C /tmp/chezmoi -xzf /tmp/chezmoi/chezmoi.tar.gz && \
-    mv /tmp/chezmoi/chezmoi /home/linuxbrew/.local/bin/chezmoi && \
-    rm -rf /tmp/chezmoi && \
+ARG CZ_VERSION=v2.70.2
+RUN mkdir -p /home/linuxbrew/.local/bin && \
+    sh -c "$(curl -fsLS https://get.chezmoi.io) -b /home/linuxbrew/.local/bin -t ${CZ_VERSION}"  && \
     /home/linuxbrew/.local/bin/chezmoi --version
