@@ -121,3 +121,24 @@ jobs:
           cat ./${{ matrix.code_name }}.json
           gh release create "version" --title "Version" --repo "${{github.repository}}" || true
           gh release upload "version" ./${{ matrix.code_name }}.json --clobber --repo "${{github.repository}}"
+
+  # https://github.com/liskin/gh-workflow-keepalive
+  keepalive:
+    if: github.event_name == 'schedule'
+    name: Keepalive
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Re-enable workflow
+        run: |
+          case "${GITHUB_WORKFLOW_REF:?}" in
+          "${GITHUB_REPOSITORY:?}"/.github/workflows/*.y*ml@*) ;;
+          *) false ;;
+          esac
+          workflow="${GITHUB_WORKFLOW_REF%%@*}"
+          workflow="${workflow#${GITHUB_REPOSITORY}/.github/workflows/}"
+          echo "Re-enable ${workflow}"
+          gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/enable"
