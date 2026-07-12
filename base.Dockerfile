@@ -3,7 +3,7 @@ ARG CODE_NAME=noble
 FROM ${BASE_IMAGE}:${CODE_NAME}
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
-    apt-get -y install --no-install-recommends build-essential sudo ca-certificates curl git locales && \
+    apt-get -y install --no-install-recommends build-essential sudo ca-certificates curl git locales file && \
     rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
     locale-gen && \
@@ -26,7 +26,7 @@ ENV HOME=/home/linuxbrew \
 WORKDIR /home/linuxbrew
 
 # install chezmoi
-ARG CZ_VERSION=v2.70.2
+ARG CZ_VERSION=v2.71.0
 RUN mkdir -p /home/linuxbrew/.local/bin && \
     sh -c "$(curl -fsLS https://get.chezmoi.io) -b /home/linuxbrew/.local/bin -t ${CZ_VERSION}"  && \
     /home/linuxbrew/.local/bin/chezmoi --version
