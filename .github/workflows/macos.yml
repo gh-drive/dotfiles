@@ -89,7 +89,7 @@ jobs:
         if: env.remote_ref != 'skip' && steps.build.outcome == 'success'
         id: integrity
         run: |
-          $HOME/.local/bin/custom/chezmoi-integrity
+          $HOME/bin/chezmoi-check
 
       - name: generate version.json
         if: env.remote_ref != 'skip' && steps.build.outcome == 'success' && steps.integrity.outcome == 'success'
